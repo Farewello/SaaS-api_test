@@ -9,6 +9,9 @@ metadata:
 
 基于 **pytest** + **数据驱动** 的 SaaS 接口自动化测试项目。
 
+- **源码仓库：** [github.com/Farewello/SaaS-api_test](https://github.com/Farewello/SaaS-api_test)
+- **记录目录：** `records/`（与代码完全分离，Agent 快速了解项目）
+
 ## 核心架构
 
 ```

@@ -9,7 +9,6 @@ logger = Logger().get_logger()
 def get_topic_pageList():
     """查询当前商家品牌的话题列表"""
     res = BaseApi().run_api('topics.yaml', 'get_topic_pageList')
-
     if res.status_code != 200:
         raise requests.RequestException(
             f'话题列表接口 HTTP 异常：status_code={res.status_code}'

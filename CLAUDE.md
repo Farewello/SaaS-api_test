@@ -2,8 +2,9 @@
 
 这是基于 **pytest** + **数据驱动** 的 SaaS 接口自动化测试项目。
 
-**完整项目说明 →** [`records/CLAUDE.md`](./records/CLAUDE.md)
-**修改/需求记录 →** [`records/CHANGELOG.md`](./records/CHANGELOG.md)
+- **源码仓库：** [github.com/Farewello/SaaS-api_test](https://github.com/Farewello/SaaS-api_test)
+- **完整项目说明 →** [`records/CLAUDE.md`](./records/CLAUDE.md)
+- **修改/需求记录 →** [`records/CHANGELOG.md`](./records/CHANGELOG.md)
 
 ### 结构速览
 

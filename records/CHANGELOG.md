@@ -3,6 +3,12 @@
 > 本文件记录每次功能新增 / 修复 / 重构 / 测试变更。
 > 每条记录对应一次 Git commit + tag，回滚：`git checkout <tag>`。
 
+## [2026-07-03] — v0.1.2
+
+### Added
+- 关联远程仓库 `github.com/Farewello/SaaS-api_test`，推送 master + tags
+- CLAUDE.md 和根 README 补充仓库链接
+
 ## [2026-07-03] — v0.1.1
 
 ### Changed
