@@ -1,6 +1,6 @@
 import requests
 from api_module.BaseApi import BaseApi
-from common.global_env import get_env, set_env
+from common.global_env import set_env
 from common.log import Logger
 
 logger = Logger().get_logger()
@@ -9,11 +9,7 @@ logger = Logger().get_logger()
 # 获取品牌列表并保存 brandId
 def get_brand_list():
     """获取当前商户的品牌列表，并将第一个 brandId 存入全局变量"""
-    merchant_id = get_env('merchant_id')
-    if merchant_id is None:
-        raise ValueError('merchant_id 未设置，请先调用 login()')
-
-    res = BaseApi().run_api('brand.yaml', 'get_brand_list', merchantId=merchant_id)
+    res = BaseApi().run_api('brand.yaml', 'get_brand_list')
 
     if res.status_code != 200:
         raise requests.RequestException(

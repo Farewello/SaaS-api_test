@@ -49,24 +49,35 @@ API 封装层  (api_module/*.py)
 
 ```bash
 # 运行全部测试
-cd SaaS_api && pytest -v
+cd SaaS_api && python -m pytest -v
 
 # 运行指定用例
-pytest test_case/test_login.py -v
+python -m pytest test_case/test_login.py -v
 
 # 运行带日志输出
-pytest -v -s
+python -m pytest -v -s
 
 # 批量删除知识库文件夹
-cd SaaS_api && python demo.py 726 753
+python demo.py 726 753
 ```
 
-## 模板变量约定
+## 模板变量与会话变量自动注入
 
 YAML 中用 `$varName` 占位，`BaseApi._substitute()` 递归替换：
 - 纯模板变量 `$name` → 保留原始类型（int/str 等）
 - 混合字符串 `prefix_$name` → 字符串级替换
 - 值为 `null` 的字段自动过滤，不传给 requests
+
+**会话变量自动注入：** 登录后固定的变量（`merchantId` / `brandId`）无需手动传入，
+`run_api()` 自动从全局变量补全。定义在 `BaseApi.SESSION_VAR_MAP`：
+
+| 模板变量 | global_env 键 | 来源 |
+|---|---|---|
+| `$merchantId` | `merchant_id` | login() 自动存入 |
+| `$brandId` | `brand_id` | get_brand_list() 自动存入 |
+
+调用方只需：`BaseApi().run_api('xxx.yaml', 'func_name')`，不再需要 `get_env()` + 传参。
+显式传入 kwargs 时优先级高于自动注入，可按需覆盖。
 
 ## 添加新接口的标准步骤
 

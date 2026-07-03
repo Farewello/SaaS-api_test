@@ -3,6 +3,18 @@
 > 本文件记录每次功能新增 / 修复 / 重构 / 测试变更。
 > 每条记录对应一次 Git commit + tag，回滚：`git checkout <tag>`。
 
+## [2026-07-03] — v0.1.1
+
+### Changed
+- **BaseApi 核心重构**：新增 `_extract_template_vars()` + `SESSION_VAR_MAP` 机制，`run_api()` 自动从全局变量注入会话变量（merchantId / brandId），调用方无需手动 get_env + 传参
+- **brand.py** 简化：移除手动 `get_env('merchant_id')` + merchantId 传参
+- **topics.py** 简化：移除手动 merchantId / brandId 的取和传
+- **demo.py** 简化：delete_kb_folder / list_kb_folders 签名去掉 merchantId / brandId 参数，自动注入
+
+### Docs
+- records/CLAUDE.md 更新：新增"会话变量自动注入"章节
+- CLAUDE.md 快速命令更新
+
 ## [2026-07-03] — v0.1.0
 
 ### Added

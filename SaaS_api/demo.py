@@ -9,29 +9,24 @@ import sys
 import requests
 from api_module.BaseApi import BaseApi
 from api_module.login import login
+from api_module.brand import get_brand_list
 from common.global_env import get_env
 
 
-def delete_kb_folder(folder_id: int, merchant_id: int, brand_id: int,
-                     scope_id: int = 1234, kb_id: int = 758) -> requests.Response:
-    """删除指定知识库文件夹"""
+def delete_kb_folder(folder_id: int, scope_id: int = 1234, kb_id: int = 758) -> requests.Response:
+    """删除指定知识库文件夹（merchantId / brandId 由 BaseApi 自动注入）"""
     return BaseApi().run_api(
         'kb_delete.yaml', 'delete_kb_folder',
-        merchantId=merchant_id,
-        brandId=brand_id,
         scopeId=scope_id,
         knowledgeBaseId=kb_id,
         id=folder_id,
     )
 
 
-def list_kb_folders(merchant_id: int, brand_id: int,
-                    scope_id: int = 1234, kb_id: int = 758) -> requests.Response:
+def list_kb_folders(scope_id: int = 1234, kb_id: int = 758) -> requests.Response:
     """列出知识库文件夹"""
     return BaseApi().run_api(
         'knowledge.yaml', 'create_kb_folder',
-        merchantId=merchant_id,
-        brandId=brand_id,
         scopeId=scope_id,
         knowledgeBaseId=kb_id,
         name='test_list_placeholder',
@@ -45,20 +40,12 @@ if __name__ == '__main__':
     # 登录 → 获取 token + merchant_id
     print('正在登录...')
     login()
-
-    merchant_id = get_env('merchant_id')
-    if merchant_id is None:
-        print('ERROR: 登录失败，merchant_id 未设置')
-        sys.exit(1)
-
-    # 获取品牌列表 → brand_id
-    print('正在获取品牌列表...')
-    from api_module.brand import get_brand_list
     get_brand_list()
 
+    merchant_id = get_env('merchant_id')
     brand_id = get_env('brand_id')
-    if brand_id is None:
-        print('ERROR: 品牌列表为空')
+    if merchant_id is None or brand_id is None:
+        print('ERROR: 登录/获取品牌失败')
         sys.exit(1)
 
     print(f'登录成功，merchant_id={merchant_id}, brand_id={brand_id}')
@@ -68,7 +55,7 @@ if __name__ == '__main__':
     fail = 0
     for fid in range(start_id, end_id + 1):
         try:
-            resp = delete_kb_folder(fid, merchant_id, brand_id)
+            resp = delete_kb_folder(fid)
             body = resp.json()
             if body.get('returnCode') == '000000':
                 print(f'  ✔ 删除 {fid} 成功')

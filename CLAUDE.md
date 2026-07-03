@@ -25,7 +25,7 @@ SaaS_api/                     ← 代码目录
 ### 快速命令
 
 ```bash
-cd SaaS_api && pytest -v       # 跑全部测试
-pytest test_case/test_login.py  # 跑指定用例
-python demo.py 726 753         # 批量删除知识库文件夹
+cd SaaS_api && python -m pytest -v       # 跑全部测试
+python -m pytest test_case/test_login.py  # 跑指定用例
+python demo.py 726 753                    # 批量删除知识库文件夹
 ```
