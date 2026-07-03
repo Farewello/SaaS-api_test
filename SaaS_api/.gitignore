@@ -1,0 +1,25 @@
+# Bytecode and runtime
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+*.iml
+
+# Test cache
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+
+# Virtual environment
+venv/
+.venv/
+env/
+.env/
+
+# OS files
+.DS_Store
+Thumbs.db

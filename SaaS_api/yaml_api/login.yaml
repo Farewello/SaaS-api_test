@@ -1,0 +1,11 @@
+login:
+  method: POST
+  url: sa/brand/login/login
+  headers:
+    Content-Type: application/json
+  json:
+    phone: $phone
+    regionCode: 86
+    verifyCode: $pwd
+    loginType: 1
+    msgId: null

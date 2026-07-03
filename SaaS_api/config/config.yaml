@@ -1,0 +1,16 @@
+# 基础配置信息
+base:
+  # SaaS API 基础地址
+  url: "https://starfield-core-service.weimobqa.com"
+  # 请求超时时间（秒）
+  timeout: 10
+  # 默认测试账号
+  phone: '13320260609'
+  pwd: '123456Zz'
+
+# 多环境配置（按需启用，通过 APP_ENV 环境变量切换）
+# 用法: APP_ENV=qa pytest
+# local:
+#   url: "http://localhost:8080"
+# staging:
+#   url: "https://starfield-core-service.staging.com"

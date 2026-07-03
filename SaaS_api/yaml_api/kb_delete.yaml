@@ -1,0 +1,14 @@
+delete_kb_folder:
+  method: POST
+  url: sa/brand/kb/delete
+  headers:
+    Content-Type: application/json
+  json:
+    baseParam:
+      merchantId: $merchantId
+    data:
+      brandId: $brandId
+      scopeType: BRAND
+      scopeId: $scopeId
+      knowledgeBaseId: $knowledgeBaseId
+      id: $id

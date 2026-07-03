@@ -1,0 +1,12 @@
+get_brand_list:
+  method: POST
+  url: sa/brand/list
+  headers:
+    Content-Type: application/json
+  json:
+    baseParam:
+      merchantId: $merchantId
+    data:
+      isDelete: 0
+      pageNum: 1
+      pageSize: 20
