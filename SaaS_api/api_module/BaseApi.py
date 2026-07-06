@@ -5,9 +5,10 @@ import re
 from string import Template
 from common.read_config import config_data, project_root_path
 from common.global_env import get_env
-from common.log import Logger
+from common.log import get_logger
+import time as _time
 
-logger = Logger().get_logger()
+logger = get_logger(__name__)
 
 
 class BaseApi:
@@ -55,48 +56,88 @@ class BaseApi:
             return [BaseApi._substitute(v, mapping) for v in data]
         return data
 
+    @staticmethod
+    def validate_response(res, *, label='响应', expect_code='000000'):
+        """统一校验 HTTP 状态码 + JSON 合法性 + 业务 returnCode。
+
+        Args:
+            res: requests.Response 对象
+            label: 接口中文描述（用于报错信息，如"登录"、"品牌列表"）
+            expect_code: 期望的业务 returnCode，默认 '000000'
+
+        Returns:
+            dict: 解析后的 response body（已验证 returnCode 正确）
+
+        Raises:
+            requests.RequestException: HTTP 状态码异常
+            ValueError: JSON 解析失败 or 业务码不符合预期
+        """
+        if res.status_code != 200:
+            raise requests.RequestException(
+                f'{label}接口 HTTP 异常：status_code={res.status_code}'
+            )
+
+        try:
+            body = res.json()
+        except ValueError as e:
+            raise ValueError(f'{label}响应不是合法 JSON：{e}')
+
+        return_code = body.get('returnCode')
+        if return_code != expect_code:
+            err_msg = body.get('returnMsg', '未知错误')
+            raise ValueError(
+                f'{label}失败：{err_msg} (code={return_code})'
+            )
+
+        return body
+
     def send_request(self, method, url, headers=None, params=None, data=None, json=None, files=None):
         """发送 HTTP 请求"""
-        # 拼接完整 URL，处理首尾斜杠
         base_url = config_data['base']['url'] + '/'
         full_url = base_url + url.lstrip('/')
 
-        # 合并 session.headers 和当前请求的 headers
         merged_headers = dict(self.session.headers)
         if headers:
             merged_headers.update(headers)
 
-        logger.info(
-            f"\n\t请求方式：{method},\n\t请求地址：{full_url},\n\t请求 params：{params},"
-            f"\n\t请求 headers：{merged_headers},\n\t请求 json：{json},\n\t请求 data：{data}"
+        # DEBUG：完整的 URL、请求细节（仅文件）
+        logger.debug(
+            f"\n\t完整地址：{full_url}"
+            f"\n\t请求 headers：{merged_headers}"
+            f"\n\t请求 json：{json}"
+            f"\n\t请求 data：{data}"
         )
 
+        start = _time.perf_counter()
         try:
             res = self.session.request(
-                method=method,
-                url=full_url,
+                method=method, url=full_url,
                 headers=merged_headers,
-                json=json,
-                data=data,
-                params=params,
-                files=files,
+                json=json, data=data,
+                params=params, files=files,
+                timeout=config_data['base'].get('timeout', 10),
             )
-            logger.info(
-                f"\n\t响应状态码：{res.status_code},\n\t响应文本：{res.text}"
+            elapsed = _time.perf_counter() - start
+
+            logger.info(f"{method} /{url.lstrip('/')} → {res.status_code} ({elapsed:.3f}s)")
+            logger.debug(
+                f"\n\t响应文本：{res.text[:2000]}"
+                f"{' …(truncated)' if len(res.text) > 2000 else ''}"
             )
             return res
         except requests.RequestException as e:
-            logger.error(f"请求失败：{e}")
+            elapsed = _time.perf_counter() - start
+            logger.error(f"{method} /{url.lstrip('/')} → FAILED ({elapsed:.3f}s): {e}")
             raise
 
-    def run_api(self, yaml_path, func_name, **kwargs):
+    def run_api(self, yaml_name, func_name, **kwargs):
         """读取 YAML 定义并发送请求，支持模板变量替换。
 
         自动注入 SESSION_VAR_MAP 中的会话变量（如 merchantId / brandId），
         优先使用 kwargs 传入的值，缺失时自动从全局变量补全。
         调用方无需手动 get_env() + 传参。
         """
-        yaml_full_path = os.path.join(project_root_path, 'yaml_api', yaml_path)
+        yaml_full_path = os.path.join(project_root_path, 'yaml_api', yaml_name)
 
         with open(yaml_full_path, 'r', encoding='utf-8') as f:
             yaml_data = yaml.safe_load(f)

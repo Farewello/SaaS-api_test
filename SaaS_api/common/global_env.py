@@ -1,10 +1,7 @@
-class Global:
-    """全局变量储存"""
-    pass
+from types import SimpleNamespace
 
-
-# 创建全局实例
-global_env = Global()
+# 全局变量实例
+global_env = SimpleNamespace()
 
 
 def set_env(key, value):
@@ -18,7 +15,7 @@ def get_env(key, default=None):
 
 
 def clear_env():
-    """清除所有全局变量"""
-    for attr in list(vars(global_env).keys()):
-        if not attr.startswith('_'):  # 跳过内置属性
+    """清除所有非私有属性"""
+    for attr in list(vars(global_env)):
+        if not attr.startswith('_'):
             delattr(global_env, attr)

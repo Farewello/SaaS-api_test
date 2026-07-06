@@ -1,49 +1,108 @@
+"""
+日志模块 — 类封装命名 logger，环境变量覆盖等级。
+
+用法：
+    from common.log import get_logger
+    logger = get_logger(__name__)
+
+环境变量：
+    LOG_LEVEL       = DEBUG / INFO / WARNING / ERROR   全局级别（默认 DEBUG）
+    LOG_STREAM_LEVEL= DEBUG / INFO / WARNING / ERROR   控制台级别（默认 INFO）
+    LOG_FILE_LEVEL  = DEBUG / INFO / WARNING / ERROR   文件级别（默认 DEBUG）
+
+控制台策略：
+  普通运行 → 自己配 StreamHandler → stdout
+  pytest 运行 → 由 pytest live_logs（--log-cli-level）接管，不额外配控制台 handler
+文件策略：
+  始终写入 logs/YYYY-MM-DD.log，每日分割，永久保留
+"""
 import logging
 import os
+import sys
 import time
 
 
-class Logger:
-    def __init__(self, logger_name='SaaS', logger_level='DEBUG', stream_level='DEBUG', file_level='DEBUG'):
-        # 1、创建日志记录器
-        self.__logger = logging.getLogger(logger_name)
-        # 2、设置日志记录器的日志等级（全局）
-        self.__logger.setLevel(logger_level)
-        # 3、创建日志格式器
-        fmt = logging.Formatter('%(name)s - %(asctime)s - %(filename)s:[%(lineno)s] - [%(levelname)s] - %(message)s')
-        # 4-1、创建控制台（流）处理器
-        sh = logging.StreamHandler()
-        # 5-1、设置控制台（流）处理器的日志等级
-        sh.setLevel(stream_level)
-        # 6-1、给控制台（流）处理器设置格式器
-        sh.setFormatter(fmt)
-        # 4-2、创建文件处理器
-        # (1) 获取项目的根目录路径
-        curr_file_abs_path = os.path.abspath(__file__)
-        project_path = os.path.dirname(os.path.dirname(curr_file_abs_path))
-        # (2) 创建logs日志目录（如果不存在）
-        logs_dir_path = os.path.join(project_path, 'logs')
-        if not os.path.exists(logs_dir_path):
-            os.makedirs(logs_dir_path)
-        # (3) 拼接完整的log日志文件的路径，日志文件名称以”年-月-日“的规则进行命名
-        log_file_name = time.strftime('%Y-%m-%d') + '.log'
-        log_file_path = os.path.join(logs_dir_path, log_file_name)
-        fh = logging.FileHandler(filename=log_file_path, mode='a', encoding='utf-8')
-        # 5-2、设置文件处理器的日志等级
-        fh.setLevel(file_level)
-        # 6-2、给文件处理器设置格式器
-        fh.setFormatter(fmt)
+# ── 内部缓存 ────────────────────────────────────────────────
 
-        # 获取当前日志器里的处理器列表
-        handlers_list = self.__logger.handlers
-        # 如果处理器列表的长度等于0（即：尚未添加处理器）时，才会添加处理器，
-        # 不写这一段，会出现“日志记录重复显示”的bug
-        if len(handlers_list) == 0:
-            # 7-1、将控制台（流）处理器添加到日志记录器
-            self.__logger.addHandler(sh)
-            # 7-2、将文件处理器添加到日志记录器
-            self.__logger.addHandler(fh)
+_log_dir_cache = None
+_logger_cache = {}
 
-    # 将__logger对象属性私有化，写一个”对外方法“来获取__logger对象
-    def get_logger(self):
-        return self.__logger
+_FORMAT = logging.Formatter(
+    '%(name)s - %(asctime)s - %(filename)s:[%(lineno)s] - [%(levelname)s] - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
+
+
+# ── 路径计算（仅一次） ─────────────────────────────────────
+
+def _log_dir():
+    global _log_dir_cache
+    if _log_dir_cache is None:
+        project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _log_dir_cache = os.path.join(project_path, 'logs')
+        os.makedirs(_log_dir_cache, exist_ok=True)
+    return _log_dir_cache
+
+
+# ── 环境变量解析 ───────────────────────────────────────────
+
+def _resolve_level(env_name, default):
+    val = os.environ.get(env_name)
+    if val:
+        level = getattr(logging, val.upper(), None)
+        if level is not None:
+            return level
+    return getattr(logging, default)
+
+
+# ── pytest 环境检测 ─────────────────────────────────────────
+
+def _in_pytest():
+    """判断是否在 pytest 运行环境中"""
+    return (
+        'pytest' in sys.modules
+        or os.environ.get('PYTEST_CURRENT_TEST')
+        or os.path.basename(sys.argv[0]).startswith('pytest')
+    )
+
+
+# ── 公开 API ────────────────────────────────────────────────
+
+def get_logger(name=None):
+    """获取命名 logger，自动配置流 + 文件 handler。
+
+    参数名建议传 __name__，这样日志会带上模块名前缀方便溯源。
+    每个命名 logger 首次调用时创建 handler，之后复用。
+    """
+    name = name or __name__
+
+    # 缓存命中 → 直接返回
+    if name in _logger_cache:
+        return _logger_cache[name]
+
+    logger = logging.getLogger(name)
+    logger.setLevel(_resolve_level('LOG_LEVEL', 'DEBUG'))
+
+    # handler 防重（同一个 logger 名只加一次）
+    if not logger.handlers:
+        # 控制台 handler：仅非 pytest 环境配（pytest 用 live_logs 接管）
+        if not _in_pytest():
+            sh = logging.StreamHandler(sys.stdout)
+            sh.setLevel(_resolve_level('LOG_STREAM_LEVEL', 'INFO'))
+            sh.setFormatter(_FORMAT)
+            logger.addHandler(sh)
+
+        # 文件 handler → logs/YYYY-MM-DD.log（始终写入）
+        fh = logging.FileHandler(
+            os.path.join(_log_dir(), time.strftime('%Y-%m-%d') + '.log'),
+            encoding='utf-8',
+        )
+        fh.setLevel(_resolve_level('LOG_FILE_LEVEL', 'DEBUG'))
+        fh.setFormatter(_FORMAT)
+        logger.addHandler(fh)
+
+        # 关 propagation，防命名 logger 日志被 root 重复处理
+        logger.propagate = False
+
+    _logger_cache[name] = logger
+    return logger
