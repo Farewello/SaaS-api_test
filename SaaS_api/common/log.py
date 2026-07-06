@@ -28,7 +28,7 @@ _log_dir_cache = None
 _logger_cache = {}
 
 _FORMAT = logging.Formatter(
-    '%(name)s - %(asctime)s - %(filename)s:[%(lineno)s] - [%(levelname)s] - %(message)s',
+    '%(asctime)s  %(filename)s:%(lineno)d  [%(levelname)s]  %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 
