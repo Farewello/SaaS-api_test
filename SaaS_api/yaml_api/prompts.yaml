@@ -1,27 +1,30 @@
-get_topics_page_list:
+get_prompts_page_list:
   method: POST
-  url: sa/brand/topics/pageList
+  url: /sa/brand/prompts/pageList
   headers:
     Content-Type: application/json
   json:
     baseParam:
       merchantId: $merchantId
     data:
+      topicId: null
       status: null
+      endTime: ~
       pageNum: 1
       pageSize: 20
       brandId: $brandId
 
-topics_save:
+prompts_save:
   method: POST
-  url: sa/brand/topics/save
+  url: sa/brand/prompts/save
   headers:
     Content-Type: application/json
   json:
     baseParam:
       merchantId: $merchantId
     data:
-      text: $text
+      topicId: $topicId
+      prompts: $prompts
       brandId: $brandId
 
 topics_change_status:

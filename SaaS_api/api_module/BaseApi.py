@@ -1,4 +1,5 @@
 import os
+import inspect
 import requests
 import yaml
 import re
@@ -21,6 +22,7 @@ class BaseApi:
     SESSION_VAR_MAP = {
         'merchantId': 'merchant_id',
         'brandId': 'brand_id',
+        'topicId': 'topic_id',
     }
 
     @staticmethod
@@ -91,8 +93,9 @@ class BaseApi:
 
         return body
 
-    def send_request(self, method, url, headers=None, params=None, data=None, json=None, files=None):
+    def send_request(self, method, url, headers=None, params=None, data=None, json=None, files=None, _caller_module=None):
         """发送 HTTP 请求"""
+        _log = get_logger(_caller_module) if _caller_module else logger
         base_url = config_data['base']['url'] + '/'
         full_url = base_url + url.lstrip('/')
 
@@ -101,7 +104,7 @@ class BaseApi:
             merged_headers.update(headers)
 
         # DEBUG：完整的 URL、请求细节（仅文件）
-        logger.debug(
+        _log.debug(
             f"\n\t完整地址：{full_url}"
             f"\n\t请求 headers：{merged_headers}"
             f"\n\t请求 json：{json}"
@@ -119,15 +122,15 @@ class BaseApi:
             )
             elapsed = _time.perf_counter() - start
 
-            logger.info(f"{method} /{url.lstrip('/')} → {res.status_code} ({elapsed:.3f}s)")
-            logger.debug(
+            _log.info(f"{method} /{url.lstrip('/')} → {res.status_code} ({elapsed:.3f}s)")
+            _log.debug(
                 f"\n\t响应文本：{res.text[:2000]}"
                 f"{' …(truncated)' if len(res.text) > 2000 else ''}"
             )
             return res
         except requests.RequestException as e:
             elapsed = _time.perf_counter() - start
-            logger.error(f"{method} /{url.lstrip('/')} → FAILED ({elapsed:.3f}s): {e}")
+            _log.error(f"{method} /{url.lstrip('/')} → FAILED ({elapsed:.3f}s): {e}")
             raise
 
     def run_api(self, yaml_name, func_name, **kwargs):
@@ -137,6 +140,10 @@ class BaseApi:
         优先使用 kwargs 传入的值，缺失时自动从全局变量补全。
         调用方无需手动 get_env() + 传参。
         """
+        # 检测调用方模块，使 send_request 的日志标注正确的来源
+        caller_frame = inspect.currentframe().f_back
+        caller_module = caller_frame.f_globals.get('__name__') if caller_frame else None
+
         yaml_full_path = os.path.join(project_root_path, 'yaml_api', yaml_name)
 
         with open(yaml_full_path, 'r', encoding='utf-8') as f:
@@ -159,4 +166,4 @@ class BaseApi:
         # 过滤掉值为 None 的字段（避免传给 requests 的参数含 None）
         api_data = {k: v for k, v in api_data.items() if v is not None}
 
-        return self.send_request(**api_data)
+        return self.send_request(**api_data, _caller_module=caller_module)

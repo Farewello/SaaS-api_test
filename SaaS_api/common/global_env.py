@@ -14,8 +14,13 @@ def get_env(key, default=None):
     return getattr(global_env, key, default)
 
 
-def clear_env():
-    """清除所有非私有属性"""
-    for attr in list(vars(global_env)):
-        if not attr.startswith('_'):
-            delattr(global_env, attr)
+def clear_env(*keys):
+    """清除指定 key 的全局变量；不传参数时清除所有非私有属性"""
+    if keys:
+        for k in keys:
+            if hasattr(global_env, k):
+                delattr(global_env, k)
+    else:
+        for attr in list(vars(global_env)):
+            if not attr.startswith('_'):
+                delattr(global_env, attr)
